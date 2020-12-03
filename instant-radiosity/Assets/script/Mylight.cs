@@ -8,24 +8,26 @@ public class Mylight : MonoBehaviour
     public RenderTexture rendertexture;
     List<Vector2> VPTexturePoint = new List<Vector2>();
     List<Vector3> VPLPoints = new List<Vector3>();
-
     List<Color> colorList;
-
 
     GameObject parent;
     GameObject PL;
     // Start is called before the first frame update
     void Start()
     {
-        for (int i = 0; i < InitVPLCount; i++)
+
+        int PassCount = 0;
+        while (PassCount != InitVPLCount)
         {
-            float Rx = halton2(i);
-            float Ry = halton2(i * 3);
-            //float Rz = halton2(i*7);
-
-            VPTexturePoint.Add(new Vector2(Rx, Ry));
+            float Rx = ((float)Random.Range(0, 1024)) / 1024.0f;
+            float Ry = ((float)Random.Range(0, 1024)) / 1024.0f;
+            if (Mathf.Sqrt(Rx * Rx + Ry * Ry) <= 1)
+            {
+                VPTexturePoint.Add(new Vector2(Rx, Ry));
+                PassCount++;
+            }
         }
-
+        
         Vector3 org = this.transform.position;
         RaycastHit hit;
 
@@ -33,30 +35,33 @@ public class Mylight : MonoBehaviour
         {
 
             Vector3 B = VPTexturePoint[i];
-            float l = Vector3.Dot(B, B);
+            B.x -= 0.5f;
+            B.y -= 0.5f;
+//            float l = Vector3.Dot(B, B);
             float z;
-            if (l >= 1.0f)
-                z = 0.0f;
-            else
-                z = Mathf.Sqrt(1.0f - l);
-           
-            Vector3 dir = this.transform.right * VPTexturePoint[i].x + this.transform.up * VPTexturePoint[i].y - this.transform.forward * z;
+            z = -1;
 
-            Physics.Raycast(org, dir, out hit);
-            VPLPoints.Add(hit.point);
+            Vector3 dir = this.transform.right * B.x + this.transform.up * B.y - this.transform.forward * z;
+            if (Physics.Raycast(org, dir, out hit, 1000))
+            {
+                VPLPoints.Add(hit.point);
+            }
         }
-
+        Texture2D tempTex = new Texture2D(1024, 1024);
+        RenderTexture.active = rendertexture;
+        tempTex.ReadPixels(new UnityEngine.Rect(0, 0, 1024, 1024), 0, 0);
         parent = new GameObject();
-        parent.name = "VPL Point";
-        parent.transform.position = new Vector3(0, 0, 0);
-
-        for (int i = 0; i < VPLPoints.Count; i++)
+        for (int i = 0; i < InitVPLCount; i++)
         {
+            Vector3 p;
+            p.x = VPTexturePoint[i].x ;
+            p.y = VPTexturePoint[i].y ;
+
             GameObject temp = new GameObject();
             temp.transform.parent = parent.transform;
             temp.transform.position = VPLPoints[i];
             temp.AddComponent<Light>();
-            temp.GetComponent<Light>().color = colorList[i];
+            temp.GetComponent<Light>().color = (tempTex.GetPixel((int)p.x, (int)p.y));
         }
 
 
