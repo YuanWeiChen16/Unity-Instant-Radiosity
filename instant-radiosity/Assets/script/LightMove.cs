@@ -5,6 +5,7 @@ using UnityEngine;
 public class LightMove : MonoBehaviour
 {
     public Vector3 Li;
+    public float MoveSpeed;
     // Start is called before the first frame update
     void Start()
     {
@@ -14,6 +15,6 @@ public class LightMove : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        this.GetComponent<Transform>().RotateAround(Li,new Vector3(0,1,0),0.5f);
+        this.GetComponent<Transform>().RotateAround(Li,new Vector3(0,1,0), MoveSpeed*Time.deltaTime);
     }
 }
