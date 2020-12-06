@@ -20,6 +20,8 @@ public class Mylight : MonoBehaviour
     List<Vector3> VPLPoints = new List<Vector3>();
     List<Color> colorList;
     float SpotAngle = 60;
+    int seedCount = 0;
+    int maxSeed = 1024;
     GameObject parent;
     GameObject PL;
     // Start is called before the first frame update
@@ -36,6 +38,10 @@ public class Mylight : MonoBehaviour
                 float Rx = Random48.Get();
                 float Ry = Random48.Get();
                 float Rz = Random48.Get();
+                Rx = halton(seedCount, 2);
+                Ry = halton(seedCount, 3);
+                Rz = halton(seedCount++, 4);
+                seedCount = seedCount % (maxSeed * 3);
                 Vector3 tempDir = new Vector3(Rx * 2.0f - 1.0f, Ry * 2.0f - 1.0f, Rz * 2.0f - 1.0f);
                 //tempDir.Normalize();
                 //tempDir -= new Vector3(0.5f,0.5f,0.5f);
@@ -50,7 +56,10 @@ public class Mylight : MonoBehaviour
                 temp.transform.parent = parent.transform;
                 temp.transform.position = VPLPoints[i];
                 temp.AddComponent<Light>();
-
+                temp.GetComponent<Light>().shadows = LightShadows.Hard;
+                temp.GetComponent<Light>().shadowBias = 0;
+                temp.GetComponent<Light>().shadowNormalBias = 0;
+                temp.GetComponent<Light>().shadowNearPlane = 0.2f;
                 Vector3 CubeUV = convert_xyz_to_cube_uv(B);
                 if (CubeUV.x == 0.0f)
                 {
@@ -97,6 +106,9 @@ public class Mylight : MonoBehaviour
 
                 float Rx = Random48.Get();
                 float Ry = Random48.Get();
+                Rx = halton(seedCount, 2);
+                Ry = halton(seedCount++, 3);
+                seedCount = seedCount % (maxSeed * 2);
                 if (Mathf.Sqrt((Rx - 0.5f) * (Rx - 0.5f) + (Ry - 0.5f) * (Ry - 0.5f)) <= radius)
                 {                    
                     Vector3 B = new Vector2(Rx, Ry);
@@ -151,6 +163,10 @@ public class Mylight : MonoBehaviour
                     float Rx = Random48.Get();
                     float Ry = Random48.Get();
                     float Rz = Random48.Get();
+                    Rx = halton(seedCount, 2);
+                    Ry = halton(seedCount, 3);
+                    Rz = halton(seedCount++, 4);
+                    seedCount = seedCount % (maxSeed * 3);
                     Vector3 tempDir = new Vector3(Rx * 2.0f - 1.0f, Ry * 2.0f - 1.0f, Rz * 2.0f - 1.0f);
                     tempDir.Normalize();
                     //tempDir -= new Vector3(0.5f, 0.5f, 0.5f);
@@ -214,6 +230,9 @@ public class Mylight : MonoBehaviour
                 {
                     float Rx = Random48.Get();
                     float Ry = Random48.Get();
+                    Rx = halton(seedCount, 2);
+                    Ry = halton(seedCount++, 3);
+                    seedCount = seedCount % (maxSeed * 2);
                     if (Mathf.Sqrt((Rx - 0.5f) * (Rx - 0.5f) + (Ry - 0.5f) * (Ry - 0.5f)) <= radius)
                     {
                         Vector3 B = new Vector3(Rx, Ry, 0);
@@ -259,6 +278,21 @@ public class Mylight : MonoBehaviour
         }
 
         return ret / (float)n;
+    }
+
+    float halton(int index, int basex)
+    {
+        float denominator = basex;
+        int n = index;
+        float result = 0;
+        while(n > 0)
+        {
+            int multiplier = n % basex;
+            result += (multiplier) * 1.0f / denominator;
+            n = n / basex;
+            denominator *= basex;
+        }
+        return result;
     }
 
     Vector3 convert_xyz_to_cube_uv(Vector3 In)
