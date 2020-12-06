@@ -9,10 +9,15 @@ public class Mylight : MonoBehaviour
     public float radius = 0.5f;
     public RenderTexture rendertexture;
     public Cubemap MyCubeMap;
-
-
+    public bool DEB = false;
+    public bool SDEB = false;
+    public GameObject CANV;
+    public GameObject CANV2;
+    public int NowSeeLight = 0;
+    public Camera C;
+    public RenderTexture Depthtex;
+    public GameObject MainCam;
     public string type = "Point Light";
-
 
     List<GameObject> VPL = new List<GameObject>();
     List<Vector2> VPTexturePoint = new List<Vector2>();
@@ -56,11 +61,10 @@ public class Mylight : MonoBehaviour
                 temp.transform.parent = parent.transform;
                 temp.transform.position = VPLPoints[i];
                 temp.AddComponent<Light>();
-                temp.GetComponent<Light>().shadows = LightShadows.Hard;
-                temp.GetComponent<Light>().shadowBias = 0;
+				temp.GetComponent<Light>().shadows = LightShadows.Hard;     
+ 				temp.GetComponent<Light>().shadowBias = 0;
                 temp.GetComponent<Light>().shadowNormalBias = 0;
-                temp.GetComponent<Light>().shadowNearPlane = 0.2f;
-                Vector3 CubeUV = convert_xyz_to_cube_uv(B);
+                temp.GetComponent<Light>().shadowNearPlane = 0.2f;                Vector3 CubeUV = convert_xyz_to_cube_uv(B);
                 if (CubeUV.x == 0.0f)
                 {
                     temp.GetComponent<Light>().color = MyCubeMap.GetPixel(CubemapFace.PositiveX, (int)(CubeUV.y * 1024.0), (int)(CubeUV.z * 1024.0));
@@ -110,7 +114,7 @@ public class Mylight : MonoBehaviour
                 Ry = halton(seedCount++, 3);
                 seedCount = seedCount % (maxSeed * 2);
                 if (Mathf.Sqrt((Rx - 0.5f) * (Rx - 0.5f) + (Ry - 0.5f) * (Ry - 0.5f)) <= radius)
-                {                    
+                {
                     Vector3 B = new Vector2(Rx, Ry);
                     B.x -= 0.5f;
                     B.y -= 0.5f;
@@ -119,9 +123,9 @@ public class Mylight : MonoBehaviour
                     z = -Mathf.Tan((Fov / 2.0f) / 180.0f * 3.1415926f);
 
                     Vector3 dir = this.transform.right * B.x + this.transform.up * B.y - this.transform.forward * z;
-                    
+
                     if (Physics.Raycast(org, dir, out hit, 1000))
-                    {                        
+                    {
                         Vector3 p;
                         p.x = B.x * 1024.0f;
                         p.y = B.y * 1024.0f;
@@ -131,6 +135,7 @@ public class Mylight : MonoBehaviour
                         temp.transform.position = hit.point;
                         temp.AddComponent<Light>();
                         temp.GetComponent<Light>().color = (tempTex.GetPixel((int)p.x, (int)p.y));
+                        temp.GetComponent<Light>().shadows = LightShadows.Hard;
                         VPL.Add(temp);
                         PassCount++;
                     }
@@ -176,6 +181,7 @@ public class Mylight : MonoBehaviour
                     if (Physics.Raycast(org, dir, out hit, 1000))
                     {
                         VPLPoints[i] = (hit.point);
+                        VPL[i].GetComponent<Transform>().LookAt(hit.normal);
                     }
 
                     VPL[i].transform.position = VPLPoints[i];
@@ -207,7 +213,7 @@ public class Mylight : MonoBehaviour
                     }
                 }
 
-                
+
             }
         }
         else
@@ -251,15 +257,63 @@ public class Mylight : MonoBehaviour
                             p.y = B.y * 1024.0f;
 
                             VPL[i].transform.position = hit.point;
+                            VPL[i].GetComponent<Transform>().LookAt(hit.normal);
                             VPL[i].GetComponent<Light>().color = (tempTex.GetPixel((int)p.x, (int)p.y));
                         }
                     }
                 }
 
-                
+            }
+            Destroy(tempTex);
+        }
 
+        if (Input.GetKeyDown(KeyCode.D))
+        {
+            DEB = !DEB;
+            CANV.SetActive(DEB);
+        }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            SDEB = !SDEB;
+            CANV2.SetActive(SDEB);
+        }
+
+
+        if (DEB == true)
+        {
+            Vector3 TP = this.GetComponent<Transform>().position;
+            for (int i = 0; i < InitVPLCount; i++)
+            {
+                Debug.DrawLine(TP, VPL[i].GetComponent<Transform>().position);
+            }
+            if (Input.GetKeyDown(KeyCode.W))
+            {
+                NowSeeLight++;
+                NowSeeLight = NowSeeLight % InitVPLCount;
+                MainCam.GetComponent<Transform>().position = VPL[NowSeeLight].GetComponent<Transform>().position;
+                MainCam.GetComponent<Transform>().rotation = VPL[NowSeeLight].GetComponent<Transform>().rotation;
+                //C.transform.parent = VPL[NowSeeLight].transform;
+                C.transform.GetComponent<Transform>().rotation = VPL[NowSeeLight].GetComponent<Transform>().rotation;
+                C.transform.GetComponent<Transform>().position = VPL[NowSeeLight].GetComponent<Transform>().position;
+            }
+
+            if (Input.GetKeyDown(KeyCode.S))
+            {
+                NowSeeLight--;
+                if (NowSeeLight < 0)
+                {
+                    NowSeeLight += InitVPLCount;
+                }
+                NowSeeLight = NowSeeLight % InitVPLCount;
+                MainCam.GetComponent<Transform>().position = VPL[NowSeeLight].GetComponent<Transform>().position;
+                MainCam.GetComponent<Transform>().rotation = VPL[NowSeeLight].GetComponent<Transform>().rotation;
+                //C.transform.parent = VPL[NowSeeLight].transform;
+                C.transform.GetComponent<Transform>().rotation = VPL[NowSeeLight].GetComponent<Transform>().rotation;
+                C.transform.GetComponent<Transform>().position = VPL[NowSeeLight].GetComponent<Transform>().position;
             }
         }
+        
     }
 
     //random
