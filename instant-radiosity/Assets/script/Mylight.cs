@@ -6,6 +6,7 @@ public class Mylight : MonoBehaviour
 {
     public int InitVPLCount = 64;
     public float Fov = 60;
+    public float radius = 0.5f;
     public RenderTexture rendertexture;
     public Cubemap MyCubeMap;
 
@@ -18,13 +19,13 @@ public class Mylight : MonoBehaviour
     List<Vector3> VPLVector = new List<Vector3>();
     List<Vector3> VPLPoints = new List<Vector3>();
     List<Color> colorList;
-
+    float SpotAngle = 60;
     GameObject parent;
     GameObject PL;
     // Start is called before the first frame update
     void Start()
     {
-
+        SpotAngle = GetComponent<Light>().spotAngle;
         if (type == "Point Light")
         {
             Vector3 org = this.transform.position;
@@ -88,13 +89,15 @@ public class Mylight : MonoBehaviour
             RenderTexture.active = rendertexture;
             tempTex.ReadPixels(new UnityEngine.Rect(0, 0, 1024, 1024), 0, 0);
             parent = new GameObject();
+            Debug.DrawLine(transform.position + transform.forward * 10, this.transform.position);
             while (PassCount != InitVPLCount)
             {
                 //float Rx = ((float)Random.Range(0, 1024)) / 1024.0f;
                 //float Ry = ((float)Random.Range(0, 1024)) / 1024.0f;
+
                 float Rx = Random48.Get();
                 float Ry = Random48.Get();
-                if (Mathf.Sqrt((Rx - 0.5f) * (Rx - 0.5f) + (Ry - 0.5f) * (Ry - 0.5f)) <= 0.5f)
+                if (Mathf.Sqrt((Rx - 0.5f) * (Rx - 0.5f) + (Ry - 0.5f) * (Ry - 0.5f)) <= radius)
                 {                    
                     Vector3 B = new Vector2(Rx, Ry);
                     B.x -= 0.5f;
@@ -104,6 +107,7 @@ public class Mylight : MonoBehaviour
                     z = -Mathf.Tan((Fov / 2.0f) / 180.0f * 3.1415926f);
 
                     Vector3 dir = this.transform.right * B.x + this.transform.up * B.y - this.transform.forward * z;
+                    
                     if (Physics.Raycast(org, dir, out hit, 1000))
                     {                        
                         Vector3 p;
@@ -132,55 +136,62 @@ public class Mylight : MonoBehaviour
     void Update()
     {
         //VPL.Clear();       
-        VPLPoints.Clear();
-        VPLVector.Clear();
+        //VPLPoints.Clear();
+        //VPLVector.Clear();
         if (type == "Point Light")
         {
             Vector3 org = this.transform.position;
             RaycastHit hit;
             for (int i = 0; i < InitVPLCount; i++)
             {
-                float Rx = Random48.Get();
-                float Ry = Random48.Get();
-                float Rz = Random48.Get();
-                Vector3 tempDir = new Vector3(Rx * 2.0f - 1.0f, Ry * 2.0f - 1.0f, Rz * 2.0f - 1.0f);
-                tempDir.Normalize();
-                //tempDir -= new Vector3(0.5f, 0.5f, 0.5f);
-                VPLVector.Add(tempDir);
-                Vector3 B = VPLVector[i];
-                Vector3 dir = this.transform.right * B.x + this.transform.up * B.y - this.transform.forward * B.z;
-                if (Physics.Raycast(org, dir, out hit, 1000))
+                Vector3 checkdir = (VPLPoints[i] - org).normalized;
+                float checkdistance = (VPLPoints[i] - org).magnitude;
+                if (Physics.Raycast(org, checkdir, out hit, checkdistance))
                 {
-                    VPLPoints.Add(hit.point);
+                    float Rx = Random48.Get();
+                    float Ry = Random48.Get();
+                    float Rz = Random48.Get();
+                    Vector3 tempDir = new Vector3(Rx * 2.0f - 1.0f, Ry * 2.0f - 1.0f, Rz * 2.0f - 1.0f);
+                    tempDir.Normalize();
+                    //tempDir -= new Vector3(0.5f, 0.5f, 0.5f);
+                    VPLVector[i] = (tempDir);
+                    Vector3 B = VPLVector[i];
+                    Vector3 dir = this.transform.right * B.x + this.transform.up * B.y - this.transform.forward * B.z;
+                    if (Physics.Raycast(org, dir, out hit, 1000))
+                    {
+                        VPLPoints[i] = (hit.point);
+                    }
+
+                    VPL[i].transform.position = VPLPoints[i];
+
+                    Vector3 CubeUV = convert_xyz_to_cube_uv(B);
+                    if (CubeUV.x == 0.0f)
+                    {
+                        VPL[i].GetComponent<Light>().color = MyCubeMap.GetPixel(CubemapFace.PositiveX, (int)(CubeUV.y * 1024.0), (int)(CubeUV.z * 1024.0));
+                    }
+                    if (CubeUV.x == 1.0f)
+                    {
+                        VPL[i].GetComponent<Light>().color = MyCubeMap.GetPixel(CubemapFace.NegativeX, (int)(CubeUV.y * 1024.0), (int)(CubeUV.z * 1024.0));
+                    }
+                    if (CubeUV.x == 2.0f)
+                    {
+                        VPL[i].GetComponent<Light>().color = MyCubeMap.GetPixel(CubemapFace.PositiveY, (int)(CubeUV.y * 1024.0), (int)(CubeUV.z * 1024.0));
+                    }
+                    if (CubeUV.x == 3.0f)
+                    {
+                        VPL[i].GetComponent<Light>().color = MyCubeMap.GetPixel(CubemapFace.NegativeY, (int)(CubeUV.y * 1024.0), (int)(CubeUV.z * 1024.0));
+                    }
+                    if (CubeUV.x == 4.0f)
+                    {
+                        VPL[i].GetComponent<Light>().color = MyCubeMap.GetPixel(CubemapFace.PositiveZ, (int)(CubeUV.y * 1024.0), (int)(CubeUV.z * 1024.0));
+                    }
+                    if (CubeUV.x == 5.0f)
+                    {
+                        VPL[i].GetComponent<Light>().color = MyCubeMap.GetPixel(CubemapFace.NegativeZ, (int)(CubeUV.y * 1024.0), (int)(CubeUV.z * 1024.0));
+                    }
                 }
 
-                VPL[i].transform.position = VPLPoints[i];
-
-                Vector3 CubeUV = convert_xyz_to_cube_uv(B);
-                if (CubeUV.x == 0.0f)
-                {
-                    VPL[i].GetComponent<Light>().color = MyCubeMap.GetPixel(CubemapFace.PositiveX, (int)(CubeUV.y * 1024.0), (int)(CubeUV.z * 1024.0));
-                }
-                if (CubeUV.x == 1.0f)
-                {
-                    VPL[i].GetComponent<Light>().color = MyCubeMap.GetPixel(CubemapFace.NegativeX, (int)(CubeUV.y * 1024.0), (int)(CubeUV.z * 1024.0));
-                }
-                if (CubeUV.x == 2.0f)
-                {
-                    VPL[i].GetComponent<Light>().color = MyCubeMap.GetPixel(CubemapFace.PositiveY, (int)(CubeUV.y * 1024.0), (int)(CubeUV.z * 1024.0));
-                }
-                if (CubeUV.x == 3.0f)
-                {
-                    VPL[i].GetComponent<Light>().color = MyCubeMap.GetPixel(CubemapFace.NegativeY, (int)(CubeUV.y * 1024.0), (int)(CubeUV.z * 1024.0));
-                }
-                if (CubeUV.x == 4.0f)
-                {
-                    VPL[i].GetComponent<Light>().color = MyCubeMap.GetPixel(CubemapFace.PositiveZ, (int)(CubeUV.y * 1024.0), (int)(CubeUV.z * 1024.0));
-                }
-                if (CubeUV.x == 5.0f)
-                {
-                    VPL[i].GetComponent<Light>().color = MyCubeMap.GetPixel(CubemapFace.NegativeZ, (int)(CubeUV.y * 1024.0), (int)(CubeUV.z * 1024.0));
-                }
+                
             }
         }
         else
@@ -191,32 +202,43 @@ public class Mylight : MonoBehaviour
             Texture2D tempTex = new Texture2D(1024, 1024);
             RenderTexture.active = rendertexture;
             tempTex.ReadPixels(new UnityEngine.Rect(0, 0, 1024, 1024), 0, 0);
-
+            Vector3 temp = (this.transform.right + this.transform.up + this.transform.forward);
+            Debug.DrawLine(transform.position + transform.forward * 10, this.transform.position);
             for (int i = 0; i < InitVPLCount; i++)
             {
-                float Rx = Random48.Get();
-                float Ry = Random48.Get();
-                if (Mathf.Sqrt((Rx - 0.5f) * (Rx - 0.5f) + (Ry - 0.5f) * (Ry - 0.5f)) <= 0.5f)
+                Vector3 checkdir = (VPL[i].transform.position - org).normalized;
+                float checkdistance = (VPL[i].transform.position - org).magnitude;
+                float checkAngle = Vector3.Angle(checkdir, transform.forward);
+
+                if (Physics.Raycast(org, checkdir, out hit, checkdistance) || checkAngle > (SpotAngle / 2.0f))
                 {
-                    Vector3 B = new Vector3(Rx, Ry, 0);
-
-                    B.x -= 0.5f;
-                    B.y -= 0.5f;
-                    //            float l = Vector3.Dot(B, B);
-                    float z;
-                    z = -Mathf.Tan((Fov / 2.0f) / 180.0f * 3.1415926f);
-
-                    Vector3 dir = this.transform.right * B.x + this.transform.up * B.y - this.transform.forward * z;
-                    if (Physics.Raycast(org, dir, out hit, 1000))
+                    float Rx = Random48.Get();
+                    float Ry = Random48.Get();
+                    if (Mathf.Sqrt((Rx - 0.5f) * (Rx - 0.5f) + (Ry - 0.5f) * (Ry - 0.5f)) <= radius)
                     {
-                        Vector3 p;
-                        p.x = B.x * 1024.0f;
-                        p.y = B.y * 1024.0f;
+                        Vector3 B = new Vector3(Rx, Ry, 0);
 
-                        VPL[i].transform.position = hit.point;
-                        VPL[i].GetComponent<Light>().color = (tempTex.GetPixel((int)p.x, (int)p.y));
+                        B.x -= 0.5f;
+                        B.y -= 0.5f;
+                        //            float l = Vector3.Dot(B, B);
+                        float z;
+                        z = -Mathf.Tan((Fov / 2.0f) / 180.0f * 3.1415926f);
+
+                        Vector3 dir = this.transform.right * B.x + this.transform.up * B.y - this.transform.forward * z;
+                        if (Physics.Raycast(org, dir, out hit, 1000))
+                        {
+                            Vector3 p;
+                            p.x = B.x * 1024.0f;
+                            p.y = B.y * 1024.0f;
+
+                            VPL[i].transform.position = hit.point;
+                            VPL[i].GetComponent<Light>().color = (tempTex.GetPixel((int)p.x, (int)p.y));
+                        }
                     }
                 }
+
+                
+
             }
         }
     }

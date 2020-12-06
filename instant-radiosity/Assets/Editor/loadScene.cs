@@ -67,6 +67,7 @@ public class loadScene : EditorWindow
 
     bool load()
     {
+        string light_type = "Point Light";
         if (LoadFile == null)
             Debug.LogError("Cannot open the file!");
         else
@@ -144,13 +145,21 @@ public class loadScene : EditorWindow
                     else if (condition == 2)
                     {
                         if (data[0] == "t" && int.Parse(data[1]) == 0)
+                        {
                             objs[size - 1].GetComponent<Light>().type = LightType.Spot;
+                            light_type = "Spot Light";
+                        }
                         else if (data[0] == "t" && int.Parse(data[1]) == 1)
+                        {
                             objs[size - 1].GetComponent<Light>().type = LightType.Point;
+                            light_type = "Point Light";
+                        }
                         else if (data[0] == "c" && data[1] == "Mylight")
                         {
                             objs[size - 1].AddComponent<Mylight>();
                             scriptPlace["Mylight"] = size - 1;
+
+                            objs[size - 1].GetComponent<Mylight>().type = light_type;
                         }
                         else if (data[0] == "c" && data[1] == "LightMove")
                         {
@@ -163,6 +172,8 @@ public class loadScene : EditorWindow
                             objs[size - 1].GetComponent<Light>().color = new Color(float.Parse(data[1]), float.Parse(data[2]), float.Parse(data[3]));
                         else if (data[0] == "intensity")
                             objs[size - 1].GetComponent<Light>().intensity = float.Parse(data[1]);
+                        else if (data[0] == "angle")
+                            objs[size - 1].GetComponent<Light>().spotAngle = float.Parse(data[1]);
                         else if (data[0].Length == 0) { }
                         else return false;
                     }
