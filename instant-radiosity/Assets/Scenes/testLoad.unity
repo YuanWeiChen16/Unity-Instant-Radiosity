@@ -1490,7 +1490,7 @@ MonoBehaviour:
   Depthtex: {fileID: 0}
   MainCam: {fileID: 0}
   type: Spot Light
-  Radius: 0.1
+  Radius: 0.6
   VPL_Num: 64
 --- !u!108 &885875814
 Light:
